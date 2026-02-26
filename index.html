@@ -24,11 +24,11 @@
         const Icon = ({ name, size = 20, className = "" }) => {
             const [iconHtml, setIconHtml] = useState("");
             useEffect(() => {
-                if (window.lucide && window.lucide.icons[name]) {
+                if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
                     setIconHtml(window.lucide.formatSVG(window.lucide.icons[name]));
                 }
             }, [name]);
-            return <span className={`inline-flex ${className}`} style={{ width: size, height: size }} dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+            return <span className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }} dangerouslySetInnerHTML={{ __html: iconHtml }} />;
         };
 
         const App = () => {
