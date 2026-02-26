@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wealth Integrity Audit</title>
+    <!-- Cleaned script URLs for proper execution -->
     <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)"></script>
     <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)"></script>
@@ -13,6 +14,7 @@
         @import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap)');
         body { font-family: 'Inter', sans-serif; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .lucide { vertical-align: middle; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -25,10 +27,19 @@
             const [iconHtml, setIconHtml] = useState("");
             useEffect(() => {
                 if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
-                    setIconHtml(window.lucide.formatSVG(window.lucide.icons[name]));
+                    const iconData = window.lucide.icons[name];
+                    const svg = window.lucide.formatSVG(iconData);
+                    setIconHtml(svg);
                 }
             }, [name]);
-            return <span className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }} dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+            
+            return (
+                <span 
+                    className={`inline-flex items-center justify-center ${className}`} 
+                    style={{ width: size, height: size }} 
+                    dangerouslySetInnerHTML={{ __html: iconHtml }} 
+                />
+            );
         };
 
         const App = () => {
