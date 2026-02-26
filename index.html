@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wealth Integrity Audit</title>
     <!-- Dependencies -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)"></script>
+    <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)"></script>
+    <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        @import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap)');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
@@ -22,24 +22,18 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
 
-        // More robust Icon Component for CDN
+        // Custom Icon Component to handle Lucide in CDN environment
         const Icon = ({ name, size = 18, className = "" }) => {
             const [iconHtml, setIconHtml] = useState("");
-            
             useEffect(() => {
-                const timer = setTimeout(() => {
-                    if (window.lucide && window.lucide.icons) {
-                        const iconData = window.lucide.icons[name];
-                        if (iconData) {
-                            // Use standard Lucide format for browser
-                            const svg = window.lucide.createIcons.formatSVG(iconData);
-                            setIconHtml(svg);
-                        }
+                if (window.lucide && window.lucide.icons) {
+                    const iconData = window.lucide.icons[name];
+                    if (iconData) {
+                        const svg = window.lucide.createIcons.formatSVG(iconData);
+                        setIconHtml(svg);
                     }
-                }, 100); // Small delay to ensure lucide is loaded
-                return () => clearTimeout(timer);
+                }
             }, [name]);
-
             return (
                 <span 
                     className={`inline-flex items-center justify-center ${className}`}
@@ -101,12 +95,9 @@
                 const fvSavings = (inputs.bankSavings || 0) * Math.pow((1 + bRate), yearsLeft);
                 const fvInvestments = (inputs.invValue || 0) * Math.pow((1 + iRate), yearsLeft);
                 const totalWealthAtRetirement = fvSavings + fvInvestments;
-                const monthlyIncomeGenerated = (totalWealthAtRetirement * 0.05) / 12;
-
+                
                 const protectionGap = Math.max(0, (inputs.medicalCrisis || 0) - (inputs.currentInsurance || 0));
                 const gapFV = protectionGap * Math.pow((1 + bRate), yearsLeft);
-                
-                const selfInsurancePenalty = (gapFV * 0.05) / 12;
                 const riskManagementCost = (protectionGap * 0.05) / 12;
 
                 const wealthShortfall = Math.max(0, wealthTarget - totalWealthAtRetirement);
@@ -124,16 +115,11 @@
                 return {
                     wealthTarget,
                     totalWealthAtRetirement,
-                    monthlyIncomeGenerated,
-                    protectionGap,
-                    gapFV,
-                    selfInsurancePenalty,
                     riskManagementCost,
                     monthlyInvestmentRequired,
                     totalRequiredMonthly,
                     surplus,
-                    yearsLeft,
-                    isOnTrack: surplus >= totalRequiredMonthly && totalRequiredMonthly > 0
+                    yearsLeft
                 };
             }, [inputs]);
 
@@ -268,9 +254,7 @@ Total Monthly Action: ${formatCurrency(results.totalRequiredMonthly)}`;
             );
         };
 
-        // Standard React 18 initialization
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
