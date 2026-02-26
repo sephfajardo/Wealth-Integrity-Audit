@@ -4,50 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wealth Integrity Audit</title>
-    <!-- Dependencies -->
     <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)"></script>
     <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)"></script>
     <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
-    <!-- Lucide Icons -->
     <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
     <style>
         @import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap)');
         body { font-family: 'Inter', sans-serif; }
-        
-        /* Custom scrollbar for a premium feel */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f8fafc; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
+        const { Activity, Calendar, ArrowRightLeft, Flag, ShieldCheck, Sparkles, PhoneCall } = window.lucide;
 
-        // Custom Icon Component to handle Lucide in CDN environment
-        const Icon = ({ name, size = 18, className = "" }) => {
-            const [iconHtml, setIconHtml] = useState("");
-            useEffect(() => {
-                if (window.lucide && window.lucide.icons) {
-                    const iconData = window.lucide.icons[name];
-                    if (iconData) {
-                        const svg = window.lucide.createIcons.formatSVG(iconData);
-                        setIconHtml(svg);
-                    }
-                }
-            }, [name]);
-            return (
-                <span 
-                    className={`inline-flex items-center justify-center ${className}`}
-                    style={{ width: size, height: size }}
-                    dangerouslySetInnerHTML={{ __html: iconHtml }}
-                />
-            );
-        };
+        // Custom Icon Wrapper for Lucide
+        const Icon = ({ icon: IconComp, ...props }) => <IconComp {...props} />;
 
         const App = () => {
             const [inputs, setInputs] = useState({
@@ -64,221 +38,98 @@
             });
 
             const formatCurrency = (val) => 
-                new Intl.NumberFormat('en-PH', { 
-                    style: 'currency', 
-                    currency: 'PHP', 
-                    maximumFractionDigits: 0 
-                }).format(val || 0);
+                new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(val || 0);
 
             const formatNumberWithCommas = (value) => {
-                if (value === null || value === undefined || value === '') return '';
                 const stringValue = value.toString().replace(/,/g, '');
-                const parts = stringValue.split('.');
-                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                return parts.join('.');
+                return stringValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             };
 
             const parseFormattedNumber = (value) => {
-                if (typeof value === 'number') return value;
                 const cleanValue = value.replace(/,/g, '');
                 return parseFloat(cleanValue) || 0;
             };
 
             const handleInputChange = (field, value) => {
-                const cleanValue = value.replace(/[^0-9.,]/g, '');
-                const numericValue = parseFormattedNumber(cleanValue);
+                const numericValue = parseFormattedNumber(value.replace(/[^0-9.,]/g, ''));
                 setInputs(prev => ({ ...prev, [field]: numericValue }));
             };
 
             const results = useMemo(() => {
                 const yearsLeft = Math.max(0, inputs.exitAge - inputs.currentAge);
-                const bRate = (inputs.bankRate || 0) / 100;
-                const iRate = (inputs.invRate || 0) / 100;
-
                 const monthlyLifestyle = inputs.monthlyCost || 0;
                 const wealthTarget = (monthlyLifestyle * 12) / 0.05;
-
-                const fvSavings = (inputs.bankSavings || 0) * Math.pow((1 + bRate), yearsLeft);
-                const fvInvestments = (inputs.invValue || 0) * Math.pow((1 + iRate), yearsLeft);
-                const totalWealthAtRetirement = fvSavings + fvInvestments;
-                
-                const protectionGap = Math.max(0, (inputs.medicalCrisis || 0) - (inputs.currentInsurance || 0));
+                const fvAssets = (inputs.bankSavings * Math.pow(1.035, yearsLeft)) + (inputs.invValue * Math.pow(1.1, yearsLeft));
+                const protectionGap = Math.max(0, inputs.medicalCrisis - inputs.currentInsurance);
                 const riskManagementCost = (protectionGap * 0.05) / 12;
-
-                const wealthShortfall = Math.max(0, wealthTarget - totalWealthAtRetirement);
+                const wealthShortfall = Math.max(0, wealthTarget - fvAssets);
                 
-                let monthlyInvestmentRequired = 0;
+                let monthlyInv = 0;
                 if (wealthShortfall > 0 && yearsLeft > 0) {
-                    const r = iRate > 0 ? iRate / 12 : 0.0001; 
+                    const r = 0.10 / 12;
                     const n = yearsLeft * 12;
-                    monthlyInvestmentRequired = wealthShortfall * (r / (Math.pow(1 + r, n) - 1));
+                    monthlyInv = wealthShortfall * (r / (Math.pow(1 + r, n) - 1));
                 }
-
-                const totalRequiredMonthly = monthlyInvestmentRequired + riskManagementCost;
-                const surplus = (inputs.monthlyIncome || 0) - monthlyLifestyle;
 
                 return {
                     wealthTarget,
-                    totalWealthAtRetirement,
                     riskManagementCost,
-                    monthlyInvestmentRequired,
-                    totalRequiredMonthly,
-                    surplus,
-                    yearsLeft
+                    monthlyInvestmentRequired: monthlyInv,
+                    totalRequiredMonthly: monthlyInv + riskManagementCost,
+                    surplus: inputs.monthlyIncome - monthlyLifestyle,
+                    protectionGap
                 };
             }, [inputs]);
 
-            const copyPlan = () => {
-                const text = `Wealth Integrity Blueprint:
-Perpetual Wealth Target: ${formatCurrency(results.wealthTarget)}
-Projected Assets at Exit Age: ${formatCurrency(results.totalWealthAtRetirement)}
-Required Monthly Investment: ${formatCurrency(results.monthlyInvestmentRequired)}
-Risk Management Premium: ${formatCurrency(results.riskManagementCost)}
-Total Monthly Action: ${formatCurrency(results.totalRequiredMonthly)}`;
-                
-                const el = document.createElement('textarea');
-                el.value = text;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-            };
-
             return (
-                <div className="min-h-screen bg-slate-50 pb-12 transition-all duration-500">
-                    <div className="max-w-4xl mx-auto px-4 py-8">
-                        {/* Header */}
-                        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                            <div>
-                                <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-                                    <Icon name="Activity" size={30} className="text-blue-600" />
-                                    Wealth Integrity Audit
-                                </h1>
-                                <p className="text-slate-500 font-medium italic mt-1">"Ensuring your money works as hard for you as you did for it."</p>
-                            </div>
-                            <div className="bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm flex items-center gap-2 self-start md:self-auto">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Analytical Engine Active</span>
-                            </div>
+                <div className="min-h-screen bg-slate-50 pb-12 px-4 py-8">
+                    <div className="max-w-4xl mx-auto">
+                        <header className="mb-8 flex justify-between items-end">
+                            <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+                                Wealth Integrity Audit
+                            </h1>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Intelligence</div>
                         </header>
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            {/* Input Column */}
                             <div className="lg:col-span-5 space-y-6">
-                                {/* Section 1: Timeline */}
-                                <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:border-blue-200 transition-colors">
-                                    <h2 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-5">
-                                        <Icon name="Calendar" size={14} /> 1. Timeline
-                                    </h2>
+                                <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
+                                    <h2 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-5">1. Timeline</h2>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Current Age</label>
-                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" value={formatNumberWithCommas(inputs.currentAge)} onChange={(e) => handleInputChange('currentAge', e.target.value)} />
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Age</label>
+                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold" value={formatNumberWithCommas(inputs.currentAge)} onChange={(e) => handleInputChange('currentAge', e.target.value)} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Work Exit Age</label>
-                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" value={formatNumberWithCommas(inputs.exitAge)} onChange={(e) => handleInputChange('exitAge', e.target.value)} />
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Exit</label>
+                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold" value={formatNumberWithCommas(inputs.exitAge)} onChange={(e) => handleInputChange('exitAge', e.target.value)} />
                                         </div>
                                     </div>
                                 </section>
 
-                                {/* Section 2: Cash Flow */}
-                                <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:border-emerald-200 transition-colors">
-                                    <h2 className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-5">
-                                        <Icon name="ArrowRightLeft" size={14} /> 2. Cash Flow
-                                    </h2>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Monthly Income (₱)</label>
-                                            <input type="text" className="w-full bg-emerald-50/50 border border-emerald-100 rounded-xl px-4 py-3 font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20" value={formatNumberWithCommas(inputs.monthlyIncome)} onChange={(e) => handleInputChange('monthlyIncome', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Monthly Lifestyle (₱)</label>
-                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500/20" value={formatNumberWithCommas(inputs.monthlyCost)} onChange={(e) => handleInputChange('monthlyCost', e.target.value)} />
-                                        </div>
-                                        <div className="mt-4 p-4 bg-slate-900 rounded-2xl text-white shadow-inner">
-                                            <span className="text-[10px] font-bold uppercase text-slate-400">Available Surplus</span>
-                                            <p className={`text-2xl font-black tracking-tight ${results.surplus >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {formatCurrency(results.surplus)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Wealth Target Card */}
-                                <section className="bg-gradient-to-br from-blue-700 to-indigo-900 rounded-[2rem] p-7 shadow-xl text-white relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                                    <h2 className="text-[10px] font-black text-blue-200 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                                        <Icon name="Flag" size={14} /> The Wealth Objective
-                                    </h2>
-                                    <p className="text-4xl font-black tracking-tighter mb-1">{formatCurrency(results.wealthTarget)}</p>
-                                    <p className="text-[11px] text-blue-100 font-medium opacity-80 italic">Maintain lifestyle indefinitely through 5% investment yields.</p>
+                                <section className="bg-gradient-to-br from-blue-700 to-indigo-900 rounded-[2rem] p-7 shadow-xl text-white">
+                                    <h2 className="text-[10px] font-black text-blue-200 uppercase tracking-[0.3em] mb-4">Wealth Objective</h2>
+                                    <p className="text-4xl font-black tracking-tighter">{formatCurrency(results.wealthTarget)}</p>
+                                    <p className="text-[11px] text-blue-100 opacity-80 mt-2">Maintain lifestyle through 5% yields.</p>
                                 </section>
                             </div>
 
-                            {/* Results Column */}
                             <div className="lg:col-span-7 space-y-6">
-                                {/* Main Blueprint Card */}
-                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative">
-                                    <div className="flex justify-between items-start mb-8">
-                                        <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.3em]">Wealth Integrity Blueprint</h3>
-                                        <Icon name="ShieldCheck" size={24} className="text-blue-500 opacity-50" />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                        <div className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Required Investment</p>
-                                            <p className="text-2xl font-black text-white">{formatCurrency(results.monthlyInvestmentRequired)}</p>
-                                            <p className="text-[10px] text-slate-500 mt-2 font-medium">To close the {formatCurrency(Math.max(0, results.wealthTarget - results.totalWealthAtRetirement))} gap</p>
+                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
+                                    <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.3em] mb-8">Blueprint Results</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        <div className="p-6 bg-white/5 rounded-3xl">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Monthly Invest</p>
+                                            <p className="text-2xl font-black">{formatCurrency(results.monthlyInvestmentRequired)}</p>
                                         </div>
-                                        <div className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors">
+                                        <div className="p-6 bg-white/5 rounded-3xl">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Risk Management</p>
                                             <p className="text-2xl font-black text-emerald-400">{formatCurrency(results.riskManagementCost)}</p>
-                                            <p className="text-[10px] text-slate-500 mt-2 font-medium">Benchmark for capital protection</p>
                                         </div>
                                     </div>
-
-                                    <div className="border-t border-white/10 pt-8 mt-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Monthly Action</p>
-                                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${results.surplus >= results.totalRequiredMonthly ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                                {results.surplus >= results.totalRequiredMonthly ? 'Funding Available' : 'Gap Detected'}
-                                            </span>
-                                        </div>
+                                    <div className="border-t border-white/10 pt-8">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Monthly Action</p>
                                         <p className="text-5xl font-black tracking-tighter">{formatCurrency(results.totalRequiredMonthly)}</p>
-                                        <button 
-                                            onClick={copyPlan} 
-                                            className="mt-8 w-full py-4 bg-blue-600 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 active:scale-[0.98] transition-all shadow-lg shadow-blue-900/40"
-                                        >
-                                            Export Blueprint Data
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Insights Card */}
-                                <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
-                                    <div className="flex items-center gap-2 mb-8">
-                                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                                            <Icon name="Sparkles" size={16} className="text-blue-600" />
-                                        </div>
-                                        <h3 className="text-lg font-black text-slate-800 tracking-tight">Strategic Insights</h3>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 group cursor-pointer hover:bg-slate-100 transition-colors">
-                                            <p className="text-xs font-black text-slate-800 mb-2">Risk & Return Optimization</p>
-                                            <p className="text-[11px] text-slate-500 leading-relaxed mb-4">Your investment portfolio needs to generate a 10% net return to meet targets.</p>
-                                            <button className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-2 group-hover:gap-3 transition-all">
-                                                <Icon name="PhoneCall" size={12} /> Book Investment Consult
-                                            </button>
-                                        </div>
-                                        <div className="p-5 bg-rose-50 rounded-[1.5rem] border border-rose-100 group cursor-pointer hover:bg-rose-100 transition-colors">
-                                            <p className="text-xs font-black text-rose-900 mb-2">Estate & Tax Shielding</p>
-                                            <p className="text-[11px] text-rose-700 leading-relaxed mb-4">A PHP {formatNumberWithCommas(inputs.medicalCrisis - inputs.currentInsurance)} gap remains in your healthcare shield.</p>
-                                            <button className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-2 group-hover:gap-3 transition-all">
-                                                <Icon name="PhoneCall" size={12} /> Explore Wealth Protection
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
